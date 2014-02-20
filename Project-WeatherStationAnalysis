@@ -1,0 +1,11 @@
+Using the previous Solar Shading Analysis as an input, I'd like to find areas where we have not been able to predict production well.
+
+Since the homes identified in the previous analysis are likely undeperforming due to shading rather than overall production, I'll eliminate them from the analysis set.
+
+Clusters of systems that have low/high production vs. forecasts:
+1) Find underperforming systems relative to predictions, cluster them geographically.  Find clusters within a X mile radius that are underperforming/overperforming which may be in a microclimate.  
+
+Supplemental Analyses:
+2) Distance from Weather Station, contribution to overall error?  Station by station?
+3) Closest Weather Station best fit?
+
