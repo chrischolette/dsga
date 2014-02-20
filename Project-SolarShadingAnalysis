@@ -2,7 +2,7 @@ Project Part 1:
 
 Solar Shading Analysis.
 
-An issue with Rooftop Solar over time is shading.  Trees grow, buildings are built, etc.  Using interval meter read data, I'd like to identify systems that are receiving a lot of shading.  The worst times of the year are when the sun is lowest in the sky in the Northern Hemisphere, i.e. around Dec. 21st.  
+An issue with Rooftop Solar over time is shading.  Trees grow, buildings are built, etc.  Using interval meter read data, I'd like to identify systems that are receiving a lot of shading.  The worst times of the year are when the sun is lowest in the sky in the Northern Hemisphere, i.e. around Dec. 21st.  I will analyze 30 days of data (Dec. 21 +/- 15 days) 
 
 Data: Using data from Dec 2013/Jan 2014 determine homes that have excessive shading.
 Technology: Hadoop, EMR, Hive
@@ -10,7 +10,7 @@ Technology: Hadoop, EMR, Hive
 Location of data: 's3://chrisc-emr-test/intervaldata/'
 Format of Data: CSV
 
-Sample Data:
+Sample Data (dataset is 20GB):
 MEPMD01,19970819,SmartSynch,,Elster,|",201401010730,58180203|2",OK,E,kWh Received + harmonics,1,00000015,1,201312312145L,,0.0010
 MEPMD01,19970819,SmartSynch,,Elster,|",201401010730,58180203|2",OK,E,kWh Received + harmonics,1,00000015,1,201312312200L,,0.0010
 MEPMD01,19970819,SmartSynch,,Elster,|",201401010730,58180203|2",OK,E,kWh Received + harmonics,1,00000015,1,201312312215L,,0.0015
@@ -33,15 +33,22 @@ We also capture the time of the first non-zero read and last non-zero read of th
 SQL:
 select substr(meter_id,1,8) as meter, substr(time_stamp,1,8) as reading_date, min(substr(thedate,9,4)) as first_read,max(substr(thedate,9,4)) as last_read,count(*) as number_of_reads, cast(max(substr(thedate,9,2))as int)-cast(min(substr(thedate,9,2))as int) as timediff from intervaldata where reading>0 group by substr(meter_id,1,8), substr(time_stamp,1,8) having count(*)<=28 order by meter; 
 
-Results:
+Sample Results:
 Case 1: Shading in morning or evening (or both.) 
 The hour difference between the first read and last read should be at least 7 hours.   Example below.
 
 Meter	 Date	 First Read Time	 Last Read Time	 Non Zero Reads	 Hours between First and Last Read
-13201085	 20140106	 1100	 1530	 13	 4
+13201085	 20140102	 1100	 1530	 13	 4
 
-Case 2: Shading during the day:
+Sample Case 2: Shading during the day:
 The hour difference between the first read and last read is >=7 hours but the number of non-zero reads is less than 28.
 
 Meter	 Date	 First Read Time	 Last Read Time	 Non Zero Reads	 Hours between First and Last Read
-52903401	 20140107	 745	 1500	 21	 8
+52903401	 20140103	 745	 1500	 21	 8
+
+This data can be further analyzed to determine homes that have the most bad shading days.  To do this, I will persist the table:
+create table intermediate_results as select substr(meter_id,1,8) as meter, substr(time_stamp,1,8) as reading_date, min(substr(thedate,9,4)) as first_read,max(substr(thedate,9,4)) as last_read,count(*) as number_of_reads, cast(max(substr(thedate,9,2))as int)-cast(min(substr(thedate,9,2))as int) as timediff from intervaldata where reading>0 group by substr(meter_id,1,8), substr(time_stamp,1,8) having count(*)<=28 order by meter; 
+
+Then run a summary query against the data.
+
+select meter, min(format reading_date in YYYYMMDD) as first_date, max(format reading_date in YYYYMMDD) as last_date, count(*)
